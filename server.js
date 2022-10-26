@@ -50,7 +50,7 @@ function joinRoom(socket, username, roomname, callback) {
       return callback(err)
     }
 
-    myRoom.pipeline.create('WebRtcEndpoint', outgoingMedia) => {
+    myRoom.pipeline.create('WebRtcEndpoint', (err, outgoingMedia) => {
       if (err) {
         return callback(err)
       }
@@ -102,7 +102,7 @@ function joinRoom(socket, username, roomname, callback) {
       })
 
       myRoom.participants[user.id] = user
-    }
+    })
   })
 }
 
