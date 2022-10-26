@@ -7,6 +7,7 @@ const kurento = require('kurento-client')
 const { pipeline } = require('stream')
 
 let kurentoClient = null
+let iceCandidateQueues = {}
 
 let argv = minimist(process.argv.slice(2), {
   default: {
@@ -42,6 +43,68 @@ io.on('connection', socket => {
     }
   })
 })
+
+function joinRoom(socket, username, roomname, callback) {
+  getRoom(socket, roomName, (err, myRoom) => {
+    if (err) {
+      return callback(err)
+    }
+
+    myRoom.pipeline.create('WebRtcEndpoint', outgoingMedia) => {
+      if (err) {
+        return callback(err)
+      }
+
+      let user = {
+        id: socket.id,
+        name: username,
+        outgoingMedia: outgoingMedia,
+        incomingMedia: {}
+      }
+
+      let iceCandidateQueue = iceCandidateQueues[user.id]
+      if (iceCandidateQueue) {
+        while (iceCandidateQueue.length) {
+          let ice = iceCandidateQueue.shift()
+          user.outgoingMedia.addIceCandidate(ice.candidate)
+        }
+      }
+
+      user.outgoingMedia.on('OnIceCandidate', event => {
+        let candidate = kurento.register.complexTypes.IceCandidate(event.candidate)
+        socket.emit('message', {
+          event: 'candidate',
+          userid: user.id,
+          candidate: candidate
+        })
+      })
+
+      socket.to(roomname).emit('message', {
+        event: 'newParticipantArrived',
+        userid: user.id,
+        username: user.name
+      })
+
+      let existingUsers = []
+      for(let i in myRoom.participants) {
+        if(myRoom.participants[i].id != user.id) {
+          existingUsers.push({
+            id: myRoom.participants[i].id,
+            name: myRoom.participants[i].name
+          })
+        }
+      }
+
+      socket.emit('message', {
+        event: 'existingParticipants',
+        existingUsers: existingUsers,
+        userid: user.id
+      })
+
+      myRoom.participants[user.id] = user
+    }
+  })
+}
 
 function getKurentoClient(callback) {
   if (kurentoClient !== null) {
