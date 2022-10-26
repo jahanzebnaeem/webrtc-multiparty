@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
+    "kurento-client": "^6.18.0",
     "minimist": "^1.2.7",
     "socket.io": "^4.5.3"
   }

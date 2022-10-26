@@ -3,6 +3,10 @@ const app = express()
 let http = require('http').Server(app)
 let minimist = require('minimist')
 let io = require('socket.io')(http)
+const kurento = require('kurento-client')
+const { pipeline } = require('stream')
+
+let kurentoClient = null
 
 let argv = minimist(process.argv.slice(2), {
   default: {
@@ -38,6 +42,42 @@ io.on('connection', socket => {
     }
   })
 })
+
+function getKurentoClient(callback) {
+  if (kurentoClient !== null) {
+    return callback(null, kurentoClient)
+  }
+
+  kurento(argv.ws_uri, (err, _kurentoClient) => {
+    if (err) {
+      console.log(err)
+      return callback(err)
+    }
+    kurentoClient = _kurentoClient
+    callback(null, kurentoClient)
+  })
+}
+
+function getRoom (socket, roomname, callback) {
+  let myRoom = io.sockets.adapter.rooms.get(roomname) || {size: 0}
+  let numClients = myRoom.size
+
+  if(numClients == 0) {
+    socket.join(roomname, () => {
+      myRoom = io.sockets.adapter.rooms.get(roomname)
+      getKurentoClient((err, kurento) => {
+        kurento.create('MediaPipeline', (err, pipeline) => {
+          myRoom.pipeline = pipeline
+          myRoom.participants = {}
+          callback(null, myRoom)
+        })
+      })
+    })
+  } else {
+    socket.join(roomname)
+    callback(null, myRoom)
+  }
+}
 
 app.use(express.static('public'))
 
