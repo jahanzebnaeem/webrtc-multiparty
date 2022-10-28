@@ -2,7 +2,7 @@ let divRoomSelection = document.getElementById('roomSelection')
 let divMeetingRoom = document.getElementById('meetingRoom')
 let inputRoom = document.getElementById('room')
 let inputName = document.getElementById('name')
-let btnRegister = document.getElementById('retister')
+let btnRegister = document.getElementById('register')
 
 // variables
 let roomName
@@ -178,4 +178,8 @@ function onExistingParticipants(userid, existingUsers) {
 
 function onReceiveVideoAnswer(senderid, sdpAnswer) {
   participants[senderid].rtcPeer.processAnswer(sdpAnswer)
+}
+
+function addIceCandidate(userid, candidate) {
+  participants[userid].rtcPeer.addIceCandidate(candidate)
 }

@@ -208,6 +208,33 @@ function receiveVideoFrom(socket, userid, roomName, sdpOffer, callback) {
     })
   })
 }
+
+function addIceCandidate(socket, senderid, roomName, iceCandidate, callback) {
+  let user = io.sockets.adapter.rooms.get(roomName).participants[socket.id]
+  if (user != null) {
+    let candidate = kurento.register.complexTypes.IceCandidate(iceCandidate)
+    if (senderid === user.id) {
+      if(user.outgoingMedia) {
+        user.outgoingMedia.addIceCandidate(candidate)
+      } else {
+        iceCandidateQueues[user.id].push({candidate: candidate})
+      }
+    } else {
+      if (user.incomingMedia[senderid]) {
+        user.incomingMedia[senderid].addIceCandidate(candidate)
+      } else {
+        if (!iceCandidateQueues[senderid]) {
+          iceCandidateQueues[senderid] = []
+        }
+        iceCandidateQueues[senderid].push({candidate: candidate})
+      }
+    }
+    callback(null)
+  } else {
+    callback(new Error("addIceCandidate failed"))
+  }
+}
+
 app.use(express.static('public'))
 
 http.listen(3000, () => {
