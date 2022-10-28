@@ -142,6 +142,72 @@ function getRoom (socket, roomname, callback) {
   }
 }
 
+function getEnpointForUser(socket, roomname, senderid, callback) {
+  let myRoom = io.sockets.adapter.rooms.get(roomname)
+  let asker = myRoom.participants[socket.id]
+  let sender = myRoom.participants[senderid]
+
+  if (asker.id === sender.id) {
+    return callback(null, asker.outgoingMedia)
+  }
+
+  if (asker.incomingMedia[sender.id]) {
+    sender.outgoingMedia.connect(asker.incomingMedia[sender.id], err => {
+      if (err) return callback(err)
+      callback(null, asker.incomingMedia[sender.id])
+    })
+  } else {
+    myRoom.pipeline.create('WebRtcEndpoint', (err, incoming) => {
+      if (err) {
+        return callback(err)
+      }
+
+      asker.incomingMedia[sender.id] = incoming
+
+      let iceCandidateQueue = iceCandidateQueues[sender.id]
+      if (iceCandidateQueue) {
+        while (iceCandidateQueue.length) {
+          let ice = iceCandidateQueue.shift()
+          user.incoming.addIceCandidate(ice.candidate)
+        }
+      }
+
+      user.incoming.on('OnIceCandidate', event => {
+        let candidate = kurento.register.complexTypes.IceCandidate(event.candidate)
+        socket.emit('message', {
+          event: 'candidate',
+          userid: user.id,
+          candidate: candidate
+        })
+      })
+
+      sender.outgoingMedia.connect(asker.incoming, err => {
+        if (err) return callback(err)
+        callback(null, asker.incoming)
+      })
+    })
+  }
+}
+
+function receiveVideoFrom(socket, userid, roomName, sdpOffer, callback) {
+  getEnpointForUser(socket, roomName, userid, (err, endpoint) => {
+    if (err) return callback (err)
+
+    endpoint.processOffer(sdpOffer, (err, sdpAnswer) => {
+      if (err) return callback(err)
+
+      socket.emit('message', {
+        event: 'receiveVideoAnswer',
+        senderid: userid,
+        sdpAnswer: sdpAnswer
+      })
+
+      endpoint.gatherCandidates(err => {
+        if (err) return callback(err)
+      })
+    })
+  })
+}
 app.use(express.static('public'))
 
 http.listen(3000, () => {

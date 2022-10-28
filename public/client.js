@@ -175,3 +175,7 @@ function onExistingParticipants(userid, existingUsers) {
     sendMessage(message)
   }
 }
+
+function onReceiveVideoAnswer(senderid, sdpAnswer) {
+  participants[senderid].rtcPeer.processAnswer(sdpAnswer)
+}
