@@ -34,7 +34,7 @@ socket.on('message', message => {
 
   switch(message.event) {
     case 'newParticipantArrived':
-      receivedVideo(message.userid, message.username)
+      receiveVideo(message.userid, message.username)
       break
     case 'existingParticipants':
       onExistingParticipants(message.userid, message.existingUsers)
@@ -71,7 +71,7 @@ function receiveVideo(userid, username) {
     rtcPeer: null
   }
 
-  participants(user.id) = user
+  participants[user.id] = user
 
   let option = {
     remoteVideo: video,

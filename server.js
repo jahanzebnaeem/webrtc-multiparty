@@ -45,7 +45,7 @@ io.on('connection', socket => {
 })
 
 function joinRoom(socket, username, roomname, callback) {
-  getRoom(socket, roomName, (err, myRoom) => {
+  getRoom(socket, roomname, (err, myRoom) => {
     if (err) {
       return callback(err)
     }
